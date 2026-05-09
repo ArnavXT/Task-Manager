@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Register - TaskFlow{% endblock %}
+{% block extra_styles %}
+<style>
+.auth-wrapper{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 80% at 50% -20%,rgba(129,140,248,.1),transparent);margin:-2rem -1.5rem;padding:2rem}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:420px;box-shadow:var(--shadow)}
+.auth-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:2rem;color:var(--accent);margin-bottom:.25rem}
+.auth-logo span{color:var(--text)}
+.auth-tagline{color:var(--text-muted);font-size:.875rem;margin-bottom:2rem}
+.form-group{margin-bottom:1.25rem}
+label{display:block;font-size:.8rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.4rem}
+input[type="email"],input[type="password"],input[type="text"]{width:100%;padding:.75rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:.95rem;font-family:'DM Sans',sans-serif;transition:var(--transition);outline:none}
+input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(129,140,248,.1)}
+.btn-primary{width:100%;padding:.85rem;background:var(--accent2);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;transition:var(--transition)}
+.btn-primary:hover{background:#a5b4fc;color:#000;transform:translateY(-1px);box-shadow:0 4px 16px rgba(129,140,248,.3)}
+.auth-footer{margin-top:1.5rem;text-align:center;font-size:.875rem;color:var(--text-muted)}
+.flash-container{position:static;margin-bottom:1rem}
+.flash{max-width:100%}
+</style>
+{% endblock %}
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-logo">Task<span>Flow</span></div>
+    <p class="auth-tagline">Create your account to get started</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+      <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    <form method="POST" action="/auth/register">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" name="username" placeholder="yourname" required minlength="3"/>
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" name="email" placeholder="you@example.com" required/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="Min 6 characters" required minlength="6"/>
+      </div>
+      <button type="submit" class="btn-primary">Create Account</button>
+    </form>
+    <div class="auth-footer">Already have an account? <a href="/auth/login">Sign in</a></div>
+  </div>
+</div>
+{% endblock %}

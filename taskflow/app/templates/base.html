@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>{% block title %}TaskFlow{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0a0b0f;--surface:#111318;--surface2:#181b22;--border:#1f2330;--accent:#6ee7b7;--accent2:#818cf8;--accent3:#f472b6;--danger:#f87171;--warning:#fbbf24;--text:#e2e8f0;--text-muted:#64748b;--text-dim:#94a3b8;--radius:12px;--radius-sm:8px;--shadow:0 4px 24px rgba(0,0,0,.4);--transition:all .2s cubic-bezier(.4,0,.2,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+h1,h2,h3,h4{font-family:'Syne',sans-serif}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.navbar-brand{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;color:var(--accent);letter-spacing:-0.5px}
+.navbar-brand span{color:var(--text)}
+.nav-links{display:flex;gap:.5rem;align-items:center}
+.nav-link{padding:.4rem .9rem;border-radius:var(--radius-sm);color:var(--text-dim);font-size:.9rem;font-weight:500;transition:var(--transition)}
+.nav-link:hover{background:var(--surface2);color:var(--text);text-decoration:none}
+.nav-link.active{background:var(--surface2);color:var(--accent)}
+.flash-container{position:fixed;top:70px;right:1.5rem;z-index:999;display:flex;flex-direction:column;gap:.5rem}
+.flash{padding:.75rem 1.25rem;border-radius:var(--radius-sm);font-size:.875rem;font-weight:500;display:flex;align-items:center;gap:.5rem;animation:slideIn .3s ease;max-width:360px;box-shadow:var(--shadow)}
+.flash-success{background:#064e3b;border:1px solid #059669;color:#a7f3d0}
+.flash-danger{background:#450a0a;border:1px solid #dc2626;color:#fca5a5}
+.flash-info{background:#1e3a5f;border:1px solid #3b82f6;color:#bfdbfe}
+.flash-warning{background:#451a03;border:1px solid #d97706;color:#fde68a}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+#ws-status{display:flex;align-items:center;gap:.4rem;font-size:.75rem;color:var(--text-muted)}
+#ws-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);transition:background .3s}
+#ws-dot.connected{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+#ws-dot.disconnected{background:var(--danger)}
+.main-content{max-width:1280px;margin:0 auto;padding:2rem 1.5rem}
+#notifications{position:fixed;bottom:1.5rem;left:1.5rem;z-index:9999;display:flex;flex-direction:column-reverse;gap:.5rem}
+.notif-toast{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);padding:.75rem 1rem;border-radius:var(--radius-sm);font-size:.85rem;max-width:300px;box-shadow:var(--shadow);animation:toastIn .3s ease}
+.notif-toast.created{border-left-color:var(--accent)}
+.notif-toast.updated{border-left-color:var(--accent2)}
+.notif-toast.deleted{border-left-color:var(--danger)}
+@keyframes toastIn{from{transform:translateX(-20px);opacity:0}to{transform:translateX(0);opacity:1}}
+</style>
+{% block extra_styles %}{% endblock %}
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<nav class="navbar">
+  <div class="navbar-brand">Task<span>Flow</span></div>
+  <div class="nav-links">
+    <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+    <a href="/analytics/" class="nav-link {% if '/analytics' in request.path %}active{% endif %}">Analytics</a>
+    <div id="ws-status"><span id="ws-dot"></span><span id="ws-label">offline</span></div>
+    <a href="/auth/logout" class="nav-link">Logout ({{ current_user.username }})</a>
+  </div>
+</nav>
+{% endif %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-container">
+  {% for category, message in messages %}
+  <div class="flash flash-{{ category }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+<div id="notifications"></div>
+<div class="main-content">{% block content %}{% endblock %}</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+{% if current_user.is_authenticated %}
+const socket = io('/tasks',{transports:['websocket','polling']});
+const wsDot=document.getElementById('ws-dot');
+const wsLabel=document.getElementById('ws-label');
+socket.on('connect',()=>{wsDot.className='connected';wsLabel.textContent='live'});
+socket.on('disconnect',()=>{wsDot.className='disconnected';wsLabel.textContent='offline'});
+function showNotification(msg,type='created'){
+  const c=document.getElementById('notifications');
+  const t=document.createElement('div');
+  t.className='notif-toast '+type;
+  t.innerHTML='<strong>&#128276; '+type.charAt(0).toUpperCase()+type.slice(1)+'</strong><br>'+msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),4500);
+}
+socket.on('task_created',d=>{showNotification(d.message,'created');if(typeof onTaskEvent==='function')onTaskEvent('created',d.task)});
+socket.on('task_updated',d=>{showNotification(d.message,'updated');if(typeof onTaskEvent==='function')onTaskEvent('updated',d.task)});
+socket.on('task_deleted',d=>{showNotification(d.message,'deleted');if(typeof onTaskEvent==='function')onTaskEvent('deleted',d.task)});
+socket.on('bulk_updated',d=>{showNotification(d.message,'updated');if(typeof onTaskEvent==='function')onTaskEvent('bulk',null)});
+document.querySelectorAll('.flash').forEach(el=>{setTimeout(()=>el.style.opacity='0',4000);setTimeout(()=>el.remove(),4300)});
+{% endif %}
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

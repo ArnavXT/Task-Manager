@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Analytics - TaskFlow{% endblock %}
+{% block extra_styles %}
+<style>
+.page-title{font-size:1.8rem;font-weight:800;margin-bottom:2rem}
+.page-title span{color:var(--accent)}
+.analytics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;text-align:center;transition:var(--transition)}
+.metric-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.metric-value{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;line-height:1;margin-bottom:.4rem}
+.metric-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem}
+@media(max-width:768px){.charts-grid{grid-template-columns:1fr}}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem}
+.chart-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);margin-bottom:1.25rem}
+.progress-bar-wrap{margin-bottom:.9rem}
+.progress-label{display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-dim);margin-bottom:.35rem}
+.progress-track{height:8px;background:var(--surface2);border-radius:999px;overflow:hidden}
+.progress-fill{height:100%;border-radius:999px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.bar-chart{display:flex;align-items:flex-end;gap:.5rem;height:130px;padding-bottom:.25rem}
+.bar-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.bar{width:100%;border-radius:5px 5px 0 0;transition:height .6s cubic-bezier(.4,0,.2,1);min-height:4px}
+.bar-label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+.bar-val{font-size:.72rem;font-weight:700;color:var(--text-dim)}
+.np-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.np-table th{text-align:left;padding:.55rem .75rem;color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+.np-table td{padding:.6rem .75rem;border-bottom:1px solid var(--border);color:var(--text-dim)}
+.np-table tr:last-child td{border-bottom:none}
+.np-table td:last-child{color:var(--accent);font-weight:700;font-family:'Syne',sans-serif}
+.timeline-chart{display:flex;align-items:flex-end;gap:3px;height:80px;margin-top:.5rem}
+.tl-bar{flex:1;border-radius:3px 3px 0 0;background:var(--accent2);opacity:.7;min-height:3px;transition:opacity .2s}
+.tl-bar:hover{opacity:1}
+.no-data{color:var(--text-muted);font-size:.85rem;padding:1rem 0;text-align:center}
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="page-title">Task <span>Analytics</span></h1>
+<div class="analytics-grid" id="metrics-grid">
+  <div class="metric-card"><div class="metric-value" style="color:var(--text-muted)">-</div><div class="metric-label">Loading...</div></div>
+</div>
+<div class="charts-grid">
+  <div class="chart-card"><div class="chart-title">Status Breakdown</div><div id="status-chart"><div class="no-data">Loading...</div></div></div>
+  <div class="chart-card"><div class="chart-title">Priority Breakdown</div><div id="priority-chart"><div class="no-data">Loading...</div></div></div>
+  <div class="chart-card"><div class="chart-title">Priority Completion Rates</div><div id="priority-completion-chart"><div class="no-data">Loading...</div></div></div>
+  <div class="chart-card">
+    <div class="chart-title">NumPy Statistical Summary</div>
+    <table class="np-table" id="np-table">
+      <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+      <tbody><tr><td colspan="2" style="color:var(--text-muted);text-align:center">Loading...</td></tr></tbody>
+    </table>
+  </div>
+  <div class="chart-card" style="grid-column:1/-1">
+    <div class="chart-title">Task Creation Timeline</div>
+    <div id="timeline-chart"><div class="no-data">Loading...</div></div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+const priorityColors={low:'var(--text-muted)',medium:'var(--warning)',high:'var(--accent3)',urgent:'var(--danger)'};
+const statusColors={pending:'var(--warning)',in_progress:'var(--accent2)',completed:'var(--accent)'};
+
+async function loadAnalytics(){
+  const res=await fetch('/analytics/summary');
+  const data=await res.json();
+  if(!data.success)return;
+  const a=data.analytics;
+
+  // Metrics
+  const metrics=[
+    {label:'Total Tasks',value:a.total_tasks,color:'var(--text)'},
+    {label:'Completed',value:a.completed_tasks,color:'var(--accent)'},
+    {label:'Pending',value:a.pending_tasks,color:'var(--warning)'},
+    {label:'In Progress',value:a.in_progress_tasks,color:'var(--accent2)'},
+    {label:'Completion %',value:a.completion_percentage+'%',color:'var(--accent)'},
+    {label:'Avg / Day',value:a.avg_tasks_per_day,color:'var(--accent3)'},
+    {label:'Done (7 days)',value:a.completion_rate_7days,color:'var(--accent2)'},
+    {label:'Std Dev (daily)',value:a.std_completion,color:'var(--text-dim)'},
+  ];
+  document.getElementById('metrics-grid').innerHTML=metrics.map(m=>
+    '<div class="metric-card"><div class="metric-value" style="color:'+m.color+'">'+m.value+'</div><div class="metric-label">'+m.label+'</div></div>'
+  ).join('');
+
+  // Status progress bars
+  const sb=a.status_breakdown;
+  const statusHtml=Object.keys(sb).length?Object.entries(sb).map(([s,info])=>
+    '<div class="progress-bar-wrap">'+
+    '<div class="progress-label"><span>'+s.replace('_',' ')+'</span><span>'+info.count+' ('+info.percentage+'%)</span></div>'+
+    '<div class="progress-track"><div class="progress-fill" style="width:'+info.percentage+'%;background:'+(statusColors[s]||'var(--accent)')+'"></div></div>'+
+    '</div>'
+  ).join(''):'<div class="no-data">No data yet.</div>';
+  document.getElementById('status-chart').innerHTML=statusHtml;
+
+  // Priority bar chart
+  const pb=a.priority_breakdown;
+  if(Object.keys(pb).length){
+    const maxP=Math.max(...Object.values(pb),1);
+    const priorityHtml='<div class="bar-chart">'+Object.entries(pb).map(([p,count])=>{
+      const h=Math.max((count/maxP)*110,4);
+      return '<div class="bar-item">'+
+        '<div class="bar-val">'+count+'</div>'+
+        '<div class="bar" style="height:'+h+'px;background:'+(priorityColors[p]||'var(--accent)')+'"></div>'+
+        '<div class="bar-label">'+p+'</div>'+
+      '</div>';
+    }).join('')+'</div>';
+    document.getElementById('priority-chart').innerHTML=priorityHtml;
+  } else {
+    document.getElementById('priority-chart').innerHTML='<div class="no-data">No data yet.</div>';
+  }
+
+  // Priority completion rates
+  const pcr=a.priority_completion_rates;
+  const pcrHtml=Object.keys(pcr).length?Object.entries(pcr).map(([p,info])=>
+    '<div class="progress-bar-wrap">'+
+    '<div class="progress-label"><span>'+p+' ('+info.completed+'/'+info.total+')</span><span>'+info.rate+'%</span></div>'+
+    '<div class="progress-track"><div class="progress-fill" style="width:'+info.rate+'%;background:'+(priorityColors[p]||'var(--accent)')+'"></div></div>'+
+    '</div>'
+  ).join(''):'<div class="no-data">No data yet.</div>';
+  document.getElementById('priority-completion-chart').innerHTML=pcrHtml;
+
+  // NumPy summary table
+  const np=a.np_summary;
+  const npRows=[
+    ['Total Count',np.total_count||0],
+    ['Max Task ID',np.max_task_id||'-'],
+    ['Min Task ID',np.min_task_id||'-'],
+    ['Mean Task ID',(np.mean_task_id||0).toFixed?np.mean_task_id.toFixed(2):np.mean_task_id],
+    ['Std Dev (daily)',a.std_completion],
+    ['Avg Tasks/Day',a.avg_tasks_per_day],
+  ];
+  document.querySelector('#np-table tbody').innerHTML=npRows.map(([k,v])=>'<tr><td>'+k+'</td><td>'+v+'</td></tr>').join('');
+
+  // Timeline chart
+  const tl=a.timeline_data||[];
+  if(tl.length){
+    const maxTl=Math.max(...tl.map(d=>d.count),1);
+    const tlHtml='<div class="timeline-chart" title="Task creation over time">'+
+      tl.map(d=>'<div class="tl-bar" style="height:'+Math.max((d.count/maxTl)*76,3)+'px" title="'+d.date+': '+d.count+' tasks"></div>').join('')+
+    '</div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--text-muted);margin-top:.4rem">'+
+      '<span>'+tl[0].date+'</span><span>'+tl[tl.length-1].date+'</span>'+
+    '</div>';
+    document.getElementById('timeline-chart').innerHTML=tlHtml;
+  } else {
+    document.getElementById('timeline-chart').innerHTML='<div class="no-data">No timeline data yet.</div>';
+  }
+}
+
+loadAnalytics();
+</script>
+{% endblock %}
