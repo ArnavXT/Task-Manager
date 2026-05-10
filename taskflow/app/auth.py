@@ -11,9 +11,9 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     if request.method == 'POST':
-        data     = request.get_json() if request.is_json else request.form
+        data = request.get_json() if request.is_json else request.form
         username = data.get('username', '').strip()
-        email    = data.get('email', '').strip().lower()
+        email = data.get('email', '').strip().lower()
         password = data.get('password', '')
         errors = []
         if not username or len(username) < 3:
@@ -45,7 +45,8 @@ def register():
         db.session.add(user)
         db.session.commit()
         if request.is_json:
-            return jsonify({'success': True, 'message': 'Registration successful.', 'user': user.to_dict()}), 201
+            return jsonify(
+                {'success': True, 'message': 'Registration successful.', 'user': user.to_dict()}), 201
         flash('Account created! You can now log in.', 'success')
         return redirect(url_for('auth.login'))
     return render_template('register.html')
@@ -56,15 +57,16 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     if request.method == 'POST':
-        data     = request.get_json() if request.is_json else request.form
-        email    = data.get('email', '').strip().lower()
+        data = request.get_json() if request.is_json else request.form
+        email = data.get('email', '').strip().lower()
         password = data.get('password', '')
         remember = data.get('remember', False)
         user = User.query.filter_by(email=email).first()
         if user and bcrypt.check_password_hash(user.password_hash, password):
             login_user(user, remember=remember)
             if request.is_json:
-                return jsonify({'success': True, 'message': 'Login successful.', 'user': user.to_dict()}), 200
+                return jsonify(
+                    {'success': True, 'message': 'Login successful.', 'user': user.to_dict()}), 200
             next_page = request.args.get('next')
             return redirect(next_page or url_for('main.dashboard'))
         msg = 'Invalid email or password.'

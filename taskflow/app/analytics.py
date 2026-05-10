@@ -11,8 +11,16 @@ analytics = Blueprint('analytics', __name__)
 def get_task_dataframe(user_id):
     tasks = Task.query.filter_by(user_id=user_id).all()
     if not tasks:
-        return pd.DataFrame(columns=['id','title','description','priority','status',
-                                      'created_at','updated_at','due_date'])
+        return pd.DataFrame(
+            columns=[
+                'id',
+                'title',
+                'description',
+                'priority',
+                'status',
+                'created_at',
+                'updated_at',
+                'due_date'])
     df = pd.DataFrame([t.to_dict() for t in tasks])
     for col in ['created_at', 'updated_at', 'due_date']:
         if col in df.columns:
@@ -42,14 +50,17 @@ def summary():
             'np_summary': {}, 'timeline_data': []
         }}), 200
 
-    status_counts     = df['status'].value_counts().to_dict()
-    completed_tasks   = int(status_counts.get('completed', 0))
-    pending_tasks     = int(status_counts.get('pending', 0))
+    status_counts = df['status'].value_counts().to_dict()
+    completed_tasks = int(status_counts.get('completed', 0))
+    pending_tasks = int(status_counts.get('pending', 0))
     in_progress_tasks = int(status_counts.get('in_progress', 0))
 
-    completion_percentage = float(np.round((completed_tasks / total_tasks) * 100, 2))
+    completion_percentage = float(
+        np.round((completed_tasks / total_tasks) * 100, 2))
 
-    priority_breakdown = {k: int(v) for k, v in df['priority'].value_counts().to_dict().items()}
+    priority_breakdown = {
+        k: int(v) for k,
+        v in df['priority'].value_counts().to_dict().items()}
 
     status_breakdown = {}
     for status, count in status_counts.items():
@@ -59,16 +70,24 @@ def summary():
         }
 
     df['created_date'] = df['created_at'].dt.date
-    tasks_per_day    = df.groupby('created_date').size()
+    tasks_per_day = df.groupby('created_date').size()
     avg_tasks_per_day = float(np.round(np.mean(tasks_per_day.values), 2))
-    std_completion    = float(np.round(np.std(tasks_per_day.values), 2)) if len(tasks_per_day) > 1 else 0.0
+    std_completion = float(
+        np.round(
+            np.std(
+                tasks_per_day.values),
+            2)) if len(tasks_per_day) > 1 else 0.0
 
     now = pd.Timestamp.now(tz='UTC')
     seven_days_ago = now - pd.Timedelta(days=7)
     if df['updated_at'].dt.tz is not None:
-        recent_mask = (df['updated_at'] >= seven_days_ago) & (df['status'] == 'completed')
+        recent_mask = (
+            df['updated_at'] >= seven_days_ago) & (
+            df['status'] == 'completed')
     else:
-        recent_mask = (df['updated_at'] >= seven_days_ago.tz_localize(None)) & (df['status'] == 'completed')
+        recent_mask = (
+            df['updated_at'] >= seven_days_ago.tz_localize(None)) & (
+            df['status'] == 'completed')
     completion_rate_7days = int(df[recent_mask].shape[0])
 
     priority_completion_rates = {}
