@@ -7,11 +7,11 @@ A full-stack task management web application built with **Flask**, **PostgreSQL*
 ## Screenshots
 
 <div align="center">
-  <img src="screenshots/Screenshot%20(866).png" width="45%" alt="Dashboard" />
-  <img src="screenshots/Screenshot%20(865).png" width="45%" alt="Analytics View 1" />
-  <img src="screenshots/Screenshot%20(863).png" width="45%" alt="Analytics View 2" />
-  <img src="screenshots/Screenshot%20(862).png" width="45%" alt="Registration Page" />
-  <img src="screenshots/Screenshot%20(864).png" width="45%" alt="Login Page" />
+  <img src="screenshots/Screenshot%20(866).png" width="45%" alt="Registration Page" />
+  <img src="screenshots/Screenshot%20(865).png" width="45%" alt="Login View 1" />
+  <img src="screenshots/Screenshot%20(863).png" width="45%" alt="Dashboard View 2" />
+  <img src="screenshots/Screenshot%20(862).png" width="45%" alt="Analytics Page" />
+  <img src="screenshots/Screenshot%20(864).png" width="45%" alt="Analytics Page" />
 </div>
 
 ---
