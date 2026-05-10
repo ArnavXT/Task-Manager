@@ -4,6 +4,18 @@ A full-stack task management web application built with **Flask**, **PostgreSQL*
 
 ---
 
+## Screenshots
+
+<div align="center">
+  <img src="screenshots/dashboard.png" width="45%" alt="Dashboard" />
+  <img src="screenshots/analytics1.png" width="45%" alt="Analytics View 1" />
+  <img src="screenshots/analytics2.png" width="45%" alt="Analytics View 2" />
+  <img src="screenshots/register.png" width="45%" alt="Registration Page" />
+  <img src="screenshots/login.png" width="45%" alt="Login Page" />
+</div>
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -164,4 +176,4 @@ The `/analytics/summary` endpoint returns:
 - **PostgreSQL** - Properly normalized schema with indexes
 - **Analytics** - Real Pandas DataFrame processing + NumPy statistical functions
 - **WebSockets** - Live toast notifications on any task change
-- **Responsive UI** - Dark-themed, clean, mobile-friendly interface
+- **Responsive UI**
